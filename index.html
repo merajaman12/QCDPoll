@@ -49,8 +49,8 @@ details{margin-top:22px;border-top:1px dashed var(--line);padding-top:18px}summa
 </div></details></section><footer>One-page poll · Fixed choices · One vote per WhatsApp number</footer></main>
 <script>
 // Replace with Supabase Project URL and anon/public key. Never use service_role key here.
-const SUPABASE_URL="YOUR_SUPABASE_PROJECT_URL";
-const SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_PUBLIC_KEY";
+const SUPABASE_URL="https://tpnsmfqpwrxpyuyhhdsy.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_M3JRKE5ASUyorNeC9Py-vQ_B7d2AN8n";
 const configured=SUPABASE_URL.startsWith("https://")&&!SUPABASE_URL.includes("YOUR_")&&!SUPABASE_ANON_KEY.includes("YOUR_");
 const db=configured?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
 const $=id=>document.getElementById(id);
