@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Picnic Time Poll</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--green:#176b50;--mint:#e9f7ef;--ink:#18352c;--muted:#65776f;--line:#dce9e1}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(145deg,#f1fbf5,#f7fbff);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.wrap{width:100%;max-width:650px}.card{background:#fff;border:1px solid var(--line);border-radius:24px;padding:clamp(20px,5vw,36px);box-shadow:0 18px 55px #173d2b12}
+.brand{display:inline-flex;gap:8px;color:var(--green);font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:var(--mint);padding:8px 12px;border-radius:99px}
+h1{font-size:clamp(30px,7vw,42px);line-height:1.1;margin:20px 0 8px;letter-spacing:-.04em}.sub{color:var(--muted);margin:0 0 24px;line-height:1.5}
+.field-title{font-weight:750;font-size:14px;margin:17px 0 7px;display:block}
+input[type=text],input[type=tel],input[type=email],input[type=password],textarea{width:100%;border:1.5px solid var(--line);border-radius:13px;padding:13px;font:inherit;outline:none}
+textarea{resize:vertical;min-height:80px}input:focus,textarea:focus{border-color:var(--green)}
+.option{display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:15px;padding:15px;margin:10px 0;cursor:pointer}.option:has(input:checked){border-color:var(--green);background:#f0faf4}input[type=radio]{accent-color:var(--green);width:19px;height:19px;flex-shrink:0}.option span{font-weight:650}
+button{border:0;border-radius:13px;background:var(--green);color:white;font:inherit;font-weight:750;padding:14px 16px;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}.full{width:100%;margin-top:18px}.secondary{background:var(--mint);color:var(--green)}.notice,.small{font-size:12px;color:var(--muted);line-height:1.5}.message{display:none;border-radius:12px;background:var(--mint);color:var(--green);padding:12px;margin-top:14px;font-size:14px}.error{background:#fff0ed;color:#9c3426}
+.results{margin-top:24px;border-top:1px solid var(--line);padding-top:20px}.results h2{font-size:17px}.result-row{margin:14px 0}.result-meta{display:flex;justify-content:space-between;gap:12px;font-size:13px;font-weight:650;margin-bottom:7px}.track{height:9px;background:#edf3ef;border-radius:99px;overflow:hidden}.fill{height:100%;background:var(--green);border-radius:99px}
+details{margin-top:22px;border-top:1px dashed var(--line);padding-top:18px}summary{cursor:pointer;font-size:13px;font-weight:750;color:var(--muted)}.admin-box{margin-top:14px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}.response{border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;font-size:13px;overflow-wrap:anywhere}.hidden{display:none!important}footer{text-align:center;color:#829188;font-size:12px;margin-top:15px}
+@media(max-width:420px){body{padding:10px}.card{border-radius:19px}.actions{flex-direction:column}}
+</style></head>
+<body><main class="wrap"><section class="card">
+<div class="brand">🌿 Class Picnic Poll</div><h1>Picnic time</h1>
+<p class="sub">Vote for your preferred picnic time. One vote per WhatsApp number. Menu suggestions and comments are visible only to the admin.</p>
+<form id="pollForm">
+<label class="field-title" for="fullName">Full name <span aria-hidden="true">*</span></label>
+<input id="fullName" type="text" maxlength="100" autocomplete="name" placeholder="Enter your full name" required>
+<label class="field-title" for="whatsapp">WhatsApp number <span aria-hidden="true">*</span></label>
+<input id="whatsapp" type="tel" maxlength="20" autocomplete="tel" placeholder="+92 3XX XXXXXXX" required>
+<p class="small">Use your Pakistani number with country code, e.g. +923001234567.</p>
+<label class="field-title">Choose picnic time <span aria-hidden="true">*</span></label>
+<label class="option"><input type="radio" name="time" value="2:30pm - 7pm" checked required><span>2:30 PM – 7 PM</span></label>
+<label class="option"><input type="radio" name="time" value="2:30pm - 9pm" required><span>2:30 PM – 9 PM</span></label>
+<label class="field-title" for="menuOpinion">Your opinion for the menu</label>
+<textarea id="menuOpinion" maxlength="2000" placeholder="Suggest food, drinks, or menu ideas…"></textarea>
+<label class="field-title" for="comment">Comment (optional)</label>
+<textarea id="comment" maxlength="2000" placeholder="Write a comment…"></textarea>
+<button class="full" id="voteBtn" type="submit">Submit vote</button>
+<div class="message" id="message" role="status"></div>
+<p class="notice">Poll choices are fixed. Your name and WhatsApp number are used to prevent duplicate voting. Responses and private comments are stored in Supabase after setup.</p>
+</form>
+<section class="results"><h2>Poll results</h2><div id="results"><p class="small">Combined results will appear after Supabase is configured.</p></div></section>
+<details><summary>Admin login · private responses</summary><div class="admin-box">
+<p class="small">Only admin accounts added to the Supabase <code>admin_users</code> table can read names, WhatsApp numbers, menu opinions, comments, and full responses.</p>
+<label class="field-title" for="email">Admin email</label><input id="email" type="email" placeholder="admin@example.com" autocomplete="username">
+<label class="field-title" for="password">Password</label><input id="password" type="password" placeholder="Admin password" autocomplete="current-password">
+<div class="actions"><button type="button" id="loginBtn">Sign in</button><button type="button" id="logoutBtn" class="secondary">Sign out</button></div>
+<div class="message" id="adminMessage"></div><div id="adminData" class="hidden"></div>
+</div></details></section><footer>One-page poll · Fixed choices · One vote per WhatsApp number</footer></main>
+<script>
+// Replace with Supabase Project URL and anon/public key. Never use service_role key here.
+const SUPABASE_URL="YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_PUBLIC_KEY";
+const configured=SUPABASE_URL.startsWith("https://")&&!SUPABASE_URL.includes("YOUR_")&&!SUPABASE_ANON_KEY.includes("YOUR_");
+const db=configured?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+const $=id=>document.getElementById(id);
+const OPTIONS=["2:30pm - 7pm","2:30pm - 9pm"];
+function message(el,text,error=false){el.textContent=text;el.style.display="block";el.classList.toggle("error",error);}
+function normalizePhone(raw){
+  let p=raw.trim().replace(/[\s().-]/g,"");
+  if(p.startsWith("00"))p="+"+p.slice(2);
+  if(p.startsWith("03")&&p.length===11)p="+92"+p.slice(1);
+  if(p.startsWith("923")&&p.length===12)p="+"+p;
+  if(!p.startsWith("+"))return null;
+  if(!/^\+[1-9]\d{7,14}$/.test(p))return null;
+  return p;
+}
+async function refreshResults(){
+  if(!db)return;
+  const {data,error}=await db.from("picnic_responses").select("time_option");
+  if(error){$("results").textContent="Results are not available.";return;}
+  const total=data.length;$("results").innerHTML="";
+  OPTIONS.forEach(option=>{
+    const count=data.filter(r=>r.time_option===option).length,pct=total?Math.round(count/total*100):0;
+    const row=document.createElement("div");row.className="result-row";
+    row.innerHTML=`<div class="result-meta"><span>${option}</span><span>${count} vote${count===1?"":"s"} · ${pct}%</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div>`;
+    $("results").appendChild(row);
+  });
+  const p=document.createElement("p");p.className="small";p.textContent=`Total votes: ${total}`;$("results").appendChild(p);
+}
+$("pollForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!db){message($("message"),"Setup required: add your Supabase URL and anon key, then run supabase.sql. No vote was saved.",true);return;}
+  const name=$("fullName").value.trim(),phone=normalizePhone($("whatsapp").value);
+  if(!name){message($("message"),"Please enter your full name.",true);return;}
+  if(!phone){message($("message"),"Enter a valid WhatsApp number with country code, e.g. +923001234567.",true);return;}
+  const selected=document.querySelector('input[name="time"]:checked');
+  if(!selected){message($("message"),"Please select a picnic time.",true);return;}
+  $("voteBtn").disabled=true;
+  const {error}=await db.from("picnic_responses").insert({
+    full_name:name,whatsapp_number:phone,time_option:selected.value,
+    menu_opinion:$("menuOpinion").value.trim(),comment_text:$("comment").value.trim()
+  });
+  $("voteBtn").disabled=false;
+  if(error){
+    if(error.code==="23505")message($("message"),"This WhatsApp number has already voted. Each number can vote only once.",true);
+    else message($("message"),"Could not submit. Check your connection or database setup and try again.",true);
+    return;
+  }
+  message($("message"),"Your vote has been submitted. Thank you!");
+  $("pollForm").reset();document.querySelector('input[name="time"][value="2:30pm - 7pm"]').checked=true;
+  await refreshResults();
+});
+$("loginBtn").addEventListener("click",async()=>{
+  if(!db){message($("adminMessage"),"Configure Supabase URL and anon key in index.html first.",true);return;}
+  const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  if(error){message($("adminMessage"),"Sign-in failed. Check email and password.",true);return;}
+  message($("adminMessage"),"Signed in. Loading admin responses…");await loadAdminResponses();
+});
+$("logoutBtn").addEventListener("click",async()=>{
+  if(db)await db.auth.signOut();$("adminData").classList.add("hidden");$("adminData").innerHTML="";message($("adminMessage"),"Signed out.");
+});
+async function loadAdminResponses(){
+  const {data:auth}=await db.auth.getUser();if(!auth.user){message($("adminMessage"),"Please sign in.",true);return;}
+  const {data,error}=await db.from("picnic_responses").select("id,full_name,whatsapp_number,time_option,menu_opinion,comment_text,created_at").order("created_at",{ascending:false});
+  if(error){message($("adminMessage"),"This account cannot view responses. Add its user UUID to admin_users.",true);return;}
+  const box=$("adminData");box.classList.remove("hidden");box.innerHTML="<h3>Private responses</h3>";
+  if(!data.length){box.innerHTML+="<p class='small'>No responses yet.</p>";return;}
+  data.forEach((r,i)=>{
+    const article=document.createElement("article");article.className="response";
+    const title=document.createElement("strong");title.textContent=`${i+1}. ${r.full_name} · ${r.time_option}`;
+    const phone=document.createElement("p");phone.textContent="WhatsApp: "+r.whatsapp_number;
+    const menu=document.createElement("p");menu.textContent="Menu opinion: "+(r.menu_opinion||"—");
+    const comment=document.createElement("p");comment.textContent="Comment: "+(r.comment_text||"—");
+    const date=document.createElement("p");date.className="small";date.textContent=new Date(r.created_at).toLocaleString();
+    article.append(title,phone,menu,comment,date);box.appendChild(article);
+  });
+}
+if(db){refreshResults();db.auth.onAuthStateChange((_e,session)=>{if(!session){$("adminData").classList.add("hidden");$("adminData").innerHTML="";}});}
+</script></body></html>
